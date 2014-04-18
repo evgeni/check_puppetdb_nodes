@@ -39,7 +39,7 @@ my $np = Nagios::Plugin->new(
     usage => "Usage: %s [ -H|--hostname=<hostname>] "
       . "[ -p|--port=<port> ] [-s] [ -w|--warning=<minutes> ] "
       . "[ -c|--critical=<minutes> ] [ -W|--warnfails=<num> ] "
-      . "[ -C|--critfails=<num> ]",
+      . "[ -C|--critfails=<num> ] [ -n|--node=<node> ]",
     shortname => 'Check last node runs from PuppetDB',
     url       => 'https://github.com/evgeni/check_puppetdb_nodes',
     version   => '0.1',
@@ -89,6 +89,11 @@ $np->add_arg(
 );
 
 $np->add_arg(
+    spec => 'node|n=s',
+    help => 'Node name to check, if not given, all nodes will be checked',
+);
+
+$np->add_arg(
     spec => 'ssl|s',
     help => "Use HTTPS instead of HTTP",
 );
@@ -102,7 +107,13 @@ my $url = sprintf( 'http%s://%s:%d/',
 my $ua = new LWP::UserAgent;
 $ua->default_header( 'Accept' => 'application/json' );
 
-my $response = $ua->get( $url . 'v3/nodes/' );
+my %parameters = ();
+if ( defined( $np->opts->node ) ) {
+    %parameters = ( 'query' => '["=","name","' . $np->opts->node . '"]' );
+}
+my $uri = URI->new( $url . 'v3/nodes' );
+$uri->query_form(%parameters);
+my $response = $ua->get($uri);
 
 if ( !$response->is_success ) {
     $np->nagios_exit( 'UNKNOWN',
