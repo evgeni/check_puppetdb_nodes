@@ -129,7 +129,11 @@ foreach my $node (@$data) {
     my $deactivated       = $node->{'deactivated'};
     my $catalog_timestamp = $node->{'catalog_timestamp'};
     my $ts                = str2time($catalog_timestamp);
-    if ( !defined $deactivated ) {
+    if ( !defined $deactivated and !length $catalog_timestamp) {
+    	    $np->add_message( CRITICAL, 
+    		    "$name last run UNAVAILABLE\n" );
+    }
+    if ( !defined $deactivated and length $catalog_timestamp) {
         my $delta = ( $now - $ts );
         if ( $delta > ( $np->opts->critical * 60 ) ) {
             $np->add_message( CRITICAL,
