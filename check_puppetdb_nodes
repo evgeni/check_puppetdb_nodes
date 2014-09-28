@@ -42,7 +42,7 @@ my $np = Nagios::Plugin->new(
       . "[ -C|--critfails=<num> ] [ -n|--node=<node> ]",
     shortname => 'Check last node runs from PuppetDB',
     url       => 'https://github.com/evgeni/check_puppetdb_nodes',
-    version   => '0.1',
+    version   => '1.0',
     license   => 'This plugin is free software, and comes with ABSOLUTELY
 NO WARRANTY. It may be used, redistributed and/or modified under
 the terms of the BSD 3-clause license.',

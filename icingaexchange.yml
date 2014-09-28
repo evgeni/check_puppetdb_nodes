@@ -1,0 +1,18 @@
+name: check_puppetdb_nodes
+description: "file:///README.md"
+url: "https://github.com/evgeni/check_puppetdb_nodes"
+tags: Puppet, PuppetDB
+vendor: PuppetLabs
+target: Reporting
+type: Plugin
+license: BSD
+releases: 
+  - 
+    name: 1.0
+    description: "1.0 Release"
+    files: 
+      - 
+        name: check_puppetdb_nodes
+        url: "file:///check_puppetdb_nodes"
+        description: "First release"
+        checksum: 3fa783d893ac2f154ca822b48e70ea04 
