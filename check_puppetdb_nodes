@@ -124,6 +124,11 @@ my $data = decode_json( $response->decoded_content );
 
 my $now = time();
 
+if ( defined( $np->opts->node ) and !@$data ) {
+    $np->add_message( CRITICAL,
+        $np->opts->node . " not found in puppetdb\n" );
+}
+
 foreach my $node (@$data) {
     my $name              = $node->{'name'};
     my $deactivated       = $node->{'deactivated'};
