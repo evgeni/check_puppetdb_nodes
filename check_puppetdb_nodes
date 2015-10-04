@@ -98,6 +98,11 @@ $np->add_arg(
     help => "Use HTTPS instead of HTTP",
 );
 
+$np->add_arg(
+    spec => 'insecure|k',
+    help => "Allow connections via HTTPS without checking certificates",
+);
+
 $np->getopts;
 
 my $url = sprintf( 'http%s://%s:%d/',
@@ -106,6 +111,9 @@ my $url = sprintf( 'http%s://%s:%d/',
 
 my $ua = new LWP::UserAgent;
 $ua->default_header( 'Accept' => 'application/json' );
+if ( defined( $np->opts->insecure ) ) {
+    $ua->ssl_opts( verify_hostname => 0 ,SSL_verify_mode => 0x00);
+}
 
 my %parameters = ();
 if ( defined( $np->opts->node ) ) {
