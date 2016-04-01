@@ -39,7 +39,8 @@ my $np = Nagios::Plugin->new(
     usage => "Usage: %s [ -H|--hostname=<hostname>] "
       . "[ -p|--port=<port> ] [-s] [ -w|--warning=<minutes> ] "
       . "[ -c|--critical=<minutes> ] [ -W|--warnfails=<num> ] "
-      . "[ -C|--critfails=<num> ] [ -n|--node=<node> ]",
+      . "[ -C|--critfails=<num> ] [ -n|--node=<node> ]"
+      . "[ -a|--apiversion=<num> ]",
     shortname => 'Check last node runs from PuppetDB',
     url       => 'https://github.com/evgeni/check_puppetdb_nodes',
     version   => '1.0',
@@ -103,7 +104,21 @@ $np->add_arg(
     help => "Allow connections via HTTPS without checking certificates",
 );
 
+$np->add_arg(
+    spec    => 'apiversion|a=n',
+    help    => 'Specify PupppetDB API version (default: %s)',
+    default => 3,
+);
+
 $np->getopts;
+
+my %apiurls = (
+    3 => { 'nodes' => 'v3/nodes', 'event-counts' => 'v3/event-counts' },
+    4 => { 'nodes' => 'pdb/query/v4/nodes', 'event-counts' => 'pdb/query/v4/event-counts' },
+);
+if ( !exists $apiurls{$np->opts->apiversion} ) {
+    $np->nagios_exit( 'UNKNOWN', 'Unsupported PuppetDB API version ' . $np->opts->apiversion );
+}
 
 my $url = sprintf( 'http%s://%s:%d/',
     defined( $np->opts->ssl ) ? 's' : '',
@@ -117,9 +132,9 @@ if ( defined( $np->opts->insecure ) ) {
 
 my %parameters = ();
 if ( defined( $np->opts->node ) ) {
-    %parameters = ( 'query' => '["=","name","' . $np->opts->node . '"]' );
+    %parameters = ( 'query' => '["=","certname","' . $np->opts->node . '"]' );
 }
-my $uri = URI->new( $url . 'v3/nodes' );
+my $uri = URI->new( $url . $apiurls{$np->opts->apiversion}{'nodes'} );
 $uri->query_form(%parameters);
 my $response = $ua->get($uri);
 
@@ -138,33 +153,33 @@ if ( defined( $np->opts->node ) and !@$data ) {
 }
 
 foreach my $node (@$data) {
-    my $name              = $node->{'name'};
+    my $certname          = $node->{'certname'};
     my $deactivated       = $node->{'deactivated'};
     my $catalog_timestamp = $node->{'catalog_timestamp'};
     my $ts                = str2time($catalog_timestamp);
     if ( !defined $deactivated and !length $catalog_timestamp) {
     	    $np->add_message( CRITICAL, 
-    		    "$name last run UNAVAILABLE\n" );
+    		    "$certname last run UNAVAILABLE\n" );
     }
     if ( !defined $deactivated and length $catalog_timestamp) {
         my $delta = ( $now - $ts );
         if ( $delta > ( $np->opts->critical * 60 ) ) {
             $np->add_message( CRITICAL,
-                "$name did not update since $catalog_timestamp\n" );
+                "$certname did not update since $catalog_timestamp\n" );
         }
         elsif ( $delta > ( $np->opts->warning * 60 ) ) {
             $np->add_message( WARNING,
-                "$name did not update since $catalog_timestamp\n" );
+                "$certname did not update since $catalog_timestamp\n" );
         }
 
         my %parameters = (
             'query' => '["and",["=","certname","'
-              . $node->{'name'}
+              . $node->{'certname'}
               . '"],["=","latest-report?",true]]',
             'summarize-by' => 'certname',
             'count-by'     => 'resource',
         );
-        my $uri = URI->new( $url . 'v3/event-counts' );
+        my $uri = URI->new( $url . $apiurls{$np->opts->apiversion}{'event-counts'} );
         $uri->query_form(%parameters);
         $response = $ua->get($uri);
 
@@ -180,11 +195,11 @@ foreach my $node (@$data) {
 
             if ( $failures >= $np->opts->critfails ) {
                 $np->add_message( CRITICAL,
-                    "$name had $failures failures in the last run\n" );
+                    "$certname had $failures failures in the last run\n" );
             }
             elsif ( $failures >= $np->opts->warnfails ) {
                 $np->add_message( WARNING,
-                    "$name had $failures failures in the last run\n" );
+                    "$certname had $failures failures in the last run\n" );
             }
         }
 
