@@ -153,7 +153,7 @@ if ( defined( $np->opts->node ) and !@$data ) {
 }
 
 foreach my $node (@$data) {
-    my $certname          = $node->{'certname'};
+    my $certname          = defined($node->{'certname'}) ? $node->{'certname'} : $node->{'name'} ;
     my $deactivated       = $node->{'deactivated'};
     my $catalog_timestamp = $node->{'catalog_timestamp'};
     my $ts                = str2time($catalog_timestamp);
@@ -172,15 +172,24 @@ foreach my $node (@$data) {
                 "$certname did not update since $catalog_timestamp\n" );
         }
 
-        my %parameters = (
-            'query' => '["and",["=","certname","'
-              . $node->{'certname'}
-              . '"],["=","latest-report?",true]]',
-            'summarize-by' => 'certname',
-            'count-by'     => 'resource',
+        my %apiparameters = (
+            3 => {
+                  'query' => '["and",["=","certname","'
+                    . $certname
+                    . '"],["=","latest-report?",true]]',
+                  'summarize-by' => 'certname',
+                  'count-by'     => 'resource',
+                 },
+            4 => {
+                'query' => '["and",["=","certname","'
+                    . $certname
+                    . '"],["=","latest_report?",true]]',
+                'summarize_by' => 'certname',
+                'count_by'     => 'resource',
+                  }
         );
         my $uri = URI->new( $url . $apiurls{$np->opts->apiversion}{'event-counts'} );
-        $uri->query_form(%parameters);
+        $uri->query_form($apiparameters{$np->opts->apiversion});
         $response = $ua->get($uri);
 
         if ( $response->is_success ) {
@@ -201,7 +210,9 @@ foreach my $node (@$data) {
                 $np->add_message( WARNING,
                     "$certname had $failures failures in the last run\n" );
             }
-        }
+        }else{
+                $np->nagios_exit( 'UNKNOWN', 'Unsupported query ' . $response->decoded_content);
+	}
 
     }
 }
