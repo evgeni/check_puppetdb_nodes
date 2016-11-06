@@ -114,7 +114,7 @@ $np->getopts;
 
 my %apiurls = (
     3 => { 'nodes' => 'v3/nodes', 'event-counts' => 'v3/event-counts' },
-    4 => { 'nodes' => 'pdb/query/v4/nodes', 'event-counts' => 'pdb/query/v4/event-counts' },
+    4 => { 'nodes' => 'pdb/query/v4/nodes', 'event-counts' => 'pdb/query/v4/event-counts', 'logs' => 'pdb/query/v4/reports/{hash}/logs' },
 );
 if ( !exists $apiurls{$np->opts->apiversion} ) {
     $np->nagios_exit( 'UNKNOWN', 'Unsupported PuppetDB API version ' . $np->opts->apiversion );
@@ -171,6 +171,7 @@ foreach my $node (@$data) {
             $np->add_message( WARNING,
                 "$certname did not update since $catalog_timestamp\n" );
         }
+        my $report_hash = $node->{'latest_report_hash'};
 
         my %apiparameters = (
             3 => {
@@ -210,9 +211,25 @@ foreach my $node (@$data) {
                 $np->add_message( WARNING,
                     "$certname had $failures failures in the last run\n" );
             }
-        }else{
+            elsif ( exists $apiurls{$np->opts->apiversion}{'logs'} ) {
+                my $apiurl = $apiurls{$np->opts->apiversion}{'logs'};
+                $apiurl =~ s/{hash}/$report_hash/;
+                $uri = URI->new( $url . $apiurl );
+                $response = $ua->get($uri);
+                if ( $response->is_success ) {
+                    my $logs = decode_json( $response->decoded_content );
+                    foreach my $log (@$logs) {
+                        my $tags = $log->{'tags'};
+                        if ( grep(/^err$/, @$tags) ) { 
+                            $np->nagios_exit( WARNING, $log->{'message'} );
+                        }
+                    }
+                }
+            }
+
+        } else {
                 $np->nagios_exit( 'UNKNOWN', 'Unsupported query ' . $response->decoded_content);
-	}
+        }
 
     }
 }
