@@ -156,7 +156,7 @@ foreach my $node (@$data) {
     my $certname          = defined($node->{'certname'}) ? $node->{'certname'} : $node->{'name'} ;
     my $deactivated       = $node->{'deactivated'};
     my $catalog_timestamp = $node->{'catalog_timestamp'};
-    my $report_hash = $node->{'latest_report_hash'};
+    my $report_hash       = $node->{'latest_report_hash'};
     my $ts                = str2time($catalog_timestamp);
     if ( !defined $deactivated and ( !length $catalog_timestamp or !length $report_hash )) {
     	    $np->add_message( CRITICAL, 
