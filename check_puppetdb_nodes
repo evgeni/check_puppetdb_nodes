@@ -156,12 +156,13 @@ foreach my $node (@$data) {
     my $certname          = defined($node->{'certname'}) ? $node->{'certname'} : $node->{'name'} ;
     my $deactivated       = $node->{'deactivated'};
     my $catalog_timestamp = $node->{'catalog_timestamp'};
+    my $report_hash = $node->{'latest_report_hash'};
     my $ts                = str2time($catalog_timestamp);
-    if ( !defined $deactivated and !length $catalog_timestamp) {
+    if ( !defined $deactivated and ( !length $catalog_timestamp or !length $report_hash )) {
     	    $np->add_message( CRITICAL, 
     		    "$certname last run UNAVAILABLE\n" );
     }
-    if ( !defined $deactivated and length $catalog_timestamp) {
+    if ( !defined $deactivated and length $catalog_timestamp and $report_hash) {
         my $delta = ( $now - $ts );
         if ( $delta > ( $np->opts->critical * 60 ) ) {
             $np->add_message( CRITICAL,
@@ -171,7 +172,6 @@ foreach my $node (@$data) {
             $np->add_message( WARNING,
                 "$certname did not update since $catalog_timestamp\n" );
         }
-        my $report_hash = $node->{'latest_report_hash'};
 
         my %apiparameters = (
             3 => {
@@ -221,7 +221,7 @@ foreach my $node (@$data) {
                     foreach my $log (@$logs) {
                         my $tags = $log->{'tags'};
                         if ( grep(/^err$/, @$tags) ) { 
-                            $np->nagios_exit( WARNING, $log->{'message'} );
+                            $np->add_message( WARNING, "$certname, $log->{'message'}" );
                         }
                     }
                 }
