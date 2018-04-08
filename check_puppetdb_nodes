@@ -32,10 +32,10 @@ use strict;
 use warnings;
 use JSON;
 use LWP;
-use Nagios::Plugin;
+use Monitoring::Plugin;
 use Date::Parse;
 
-my $np = Nagios::Plugin->new(
+my $np = Monitoring::Plugin->new(
     usage => "Usage: %s [ -H|--hostname=<hostname>] "
       . "[ -p|--port=<port> ] [-s] [ -w|--warning=<minutes> ] "
       . "[ -c|--critical=<minutes> ] [ -W|--warnfails=<num> ] "
