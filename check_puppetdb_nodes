@@ -40,7 +40,8 @@ my $np = Monitoring::Plugin->new(
       . "[ -p|--port=<port> ] [-s] [ -w|--warning=<minutes> ] "
       . "[ -c|--critical=<minutes> ] [ -W|--warnfails=<num> ] "
       . "[ -C|--critfails=<num> ] [ -n|--node=<node> ]"
-      . "[ -a|--apiversion=<num> ]",
+      . "[ -a|--apiversion=<num> ]"
+      . "[ -i|--ignore=<list> ]",
     shortname => 'Check last node runs from PuppetDB',
     url       => 'https://github.com/evgeni/check_puppetdb_nodes',
     version   => '1.0',
@@ -110,6 +111,12 @@ $np->add_arg(
     default => 3,
 );
 
+$np->add_arg(
+    spec    => 'ignore|i=s',
+    help    => 'Node names to ignore (comma-separated list) (default: %s)',
+    default => '',
+);
+
 $np->getopts;
 
 my %apiurls = (
@@ -119,6 +126,8 @@ my %apiurls = (
 if ( !exists $apiurls{$np->opts->apiversion} ) {
     $np->nagios_exit( 'UNKNOWN', 'Unsupported PuppetDB API version ' . $np->opts->apiversion );
 }
+
+my @ignore_list = split( ',', $np->opts->ignore );
 
 my $url = sprintf( 'http%s://%s:%d/',
     defined( $np->opts->ssl ) ? 's' : '',
@@ -158,6 +167,9 @@ foreach my $node (@$data) {
     my $catalog_timestamp = $node->{'catalog_timestamp'};
     my $report_hash       = $node->{'latest_report_hash'};
     my $ts                = str2time($catalog_timestamp);
+
+    next if grep { $certname eq $_ } @ignore_list;
+
     if ( !defined $deactivated and ( !length $catalog_timestamp or !length $report_hash )) {
     	    $np->add_message( CRITICAL, 
     		    "$certname last run UNAVAILABLE\n" );
