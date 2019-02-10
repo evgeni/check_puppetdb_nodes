@@ -114,7 +114,7 @@ $np->add_arg(
 $np->add_arg(
     spec    => 'ignore|i=s',
     help    => 'Node names to ignore (comma-separated list) (default: %s)',
-    default => 'empty',
+    default => '',
 );
 
 $np->getopts;
